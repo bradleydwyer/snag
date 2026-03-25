@@ -1,6 +1,17 @@
 use anyhow::{Context, Result, bail};
 use std::process::Command;
 
+fn check_gifski() -> Result<()> {
+    let output = Command::new("which")
+        .arg("gifski")
+        .output()
+        .context("failed to check for gifski")?;
+    if !output.status.success() {
+        bail!("gifski not found in PATH. Install with: brew install gifski");
+    }
+    Ok(())
+}
+
 pub fn encode_gif(
     stream_url: &str,
     start_secs: f64,
@@ -13,6 +24,8 @@ pub fn encode_gif(
     let duration = format!("{:.2}", end_secs - start_secs);
     let scale = format!("fps={fps},scale={width}:-1:flags=lanczos");
 
+    check_gifski()?;
+
     eprintln!(
         "Encoding GIF: {start}s to {:.2}s ({duration}s) at {fps}fps, {width}px wide...",
         end_secs
@@ -24,12 +37,17 @@ pub fn encode_gif(
     // Extract frames to temp dir
     let ffmpeg_status = Command::new("ffmpeg")
         .args([
-            "-ss", &start,
-            "-t", &duration,
-            "-i", stream_url,
-            "-vf", &scale,
+            "-ss",
+            &start,
+            "-t",
+            &duration,
+            "-i",
+            stream_url,
+            "-vf",
+            &scale,
             "-y",
-            "-loglevel", "error",
+            "-loglevel",
+            "error",
             pattern.to_str().unwrap(),
         ])
         .status()

@@ -63,61 +63,27 @@ fn parse_duration_hms(s: &str) -> Option<f64> {
     }
 }
 
-pub fn preview_fps(duration_secs: f64) -> f64 {
-    if duration_secs > 300.0 {
-        2.0
-    } else if duration_secs > 120.0 {
-        5.0
-    } else {
-        10.0
-    }
-}
+pub fn download_video(url: &str, output_dir: &Path) -> Result<PathBuf> {
+    let output_path = output_dir.join("video.mp4");
 
-pub fn extract_preview_frames(
-    stream_url: &str,
-    tmpdir: &Path,
-    duration_secs: f64,
-    width: u32,
-) -> Result<Vec<PathBuf>> {
-    let fps = preview_fps(duration_secs);
-    let fps = format!("{fps}");
-    let scale = format!("fps={fps},scale={width}:-1");
-    let pattern = tmpdir.join("frame_%05d.png");
+    eprintln!("Downloading video...");
 
-    eprintln!("Extracting preview frames...");
-
-    let status = Command::new("ffmpeg")
+    let status = Command::new("yt-dlp")
         .args([
-            "-i",
-            stream_url,
-            "-vf",
-            &scale,
-            "-q:v",
-            "2",
-            pattern.to_str().unwrap(),
-            "-y",
-            "-loglevel",
-            "error",
+            "-f",
+            "best[height<=720]/best",
+            "--merge-output-format",
+            "mp4",
+            "-o",
+            output_path.to_str().unwrap(),
+            url,
         ])
         .status()
-        .context("failed to run ffmpeg")?;
+        .context("failed to run yt-dlp")?;
 
     if !status.success() {
-        bail!("ffmpeg frame extraction failed");
+        bail!("yt-dlp download failed");
     }
 
-    let mut frames: Vec<PathBuf> = std::fs::read_dir(tmpdir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|ext| ext == "png"))
-        .collect();
-
-    frames.sort();
-
-    if frames.is_empty() {
-        bail!("no frames extracted");
-    }
-
-    eprintln!("Extracted {} preview frames", frames.len());
-    Ok(frames)
+    Ok(output_path)
 }
