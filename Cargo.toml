@@ -1,0 +1,13 @@
+[package]
+name = "snag"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ratatui = "0.29"
+ratatui-image = "8"
+image = "0.25"
+crossterm = "0.28"
+anyhow = "1"
+tempfile = "3"
